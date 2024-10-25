@@ -3,3 +3,5 @@ pandas
 numpy
 scikit-learn
 pickle5
+
+pip install -r requirements.txt
