@@ -9,10 +9,11 @@ st.set_page_config(page_title="Heart Failure Prediction", page_icon="❤️", la
 # Fungsi untuk memuat model dengan pengecekan direktori dan file
 @st.cache_resource
 def load_model():
-    model_path = 'models/heart_failure_model.pkl'
+    # Menyusun jalur ke file model secara dinamis menggunakan os.path.join()
+    model_path = os.path.join(os.path.dirname(__file__), 'models', 'heart_failure_model.pkl')
     
-    # Verifikasi apakah direktori dan file model ada
-    if not os.path.exists('models'):
+    # Verifikasi apakah direktori 'models' dan file model ada
+    if not os.path.exists(os.path.dirname(model_path)):
         st.error("Directory 'models' tidak ditemukan. Pastikan direktori yang berisi file model sudah tersedia.")
         st.stop()
     if not os.path.exists(model_path):
