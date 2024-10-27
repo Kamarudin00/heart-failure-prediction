@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 import pickle
 import os
@@ -13,30 +13,29 @@ def create_model():
         if not os.path.exists('models'):
             os.makedirs('models')
         
-        # Load and prepare data
+        # Load data
         data = pd.read_csv('heart.csv')
         
-        # Debugging: Print column names and first few rows
-        print("Available columns:", data.columns.tolist())
-        print("\nFirst few rows of data:")
-        print(data.head())
+        # Create label encoders for categorical columns
+        categorical_columns = ['Sex', 'ChestPainType', 'RestingECG', 'ExerciseAngina', 'ST_Slope']
+        label_encoders = {}
         
-        # Check if 'condition' exists instead of 'target'
-        target_column = 'condition' if 'condition' in data.columns else 'HeartDisease' if 'HeartDisease' in data.columns else 'target'
+        # Encode categorical variables
+        for column in categorical_columns:
+            label_encoders[column] = LabelEncoder()
+            data[column] = label_encoders[column].fit_transform(data[column])
         
-        if target_column not in data.columns:
-            raise ValueError(f"Target column '{target_column}' not found in dataset. Available columns: {data.columns.tolist()}")
-        
-        X = data.drop(target_column, axis=1)
-        y = data[target_column]
+        # Separate features and target
+        X = data.drop('HeartDisease', axis=1)
+        y = data['HeartDisease']
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=0.2, random_state=42
         )
         
-        # Scale features
-        numeric_features = X.select_dtypes(include=['float64', 'int64']).columns
+        # Scale numeric features
+        numeric_features = ['Age', 'RestingBP', 'Cholesterol', 'FastingBS', 'MaxHR', 'Oldpeak']
         scaler = StandardScaler()
         X_train[numeric_features] = scaler.fit_transform(X_train[numeric_features])
         
@@ -44,16 +43,20 @@ def create_model():
         model = RandomForestClassifier(n_estimators=100, random_state=42)
         model.fit(X_train, y_train)
         
-        # Save model and scaler
+        # Save model, scaler, and label encoders
         with open('models/model.pkl', 'wb') as f:
-            pickle.dump(model, f, protocol=4)
+            pickle.dump(model, f)
         
         with open('models/scaler.pkl', 'wb') as f:
-            pickle.dump(scaler, f, protocol=4)
+            pickle.dump(scaler, f)
+            
+        with open('models/encoders.pkl', 'wb') as f:
+            pickle.dump(label_encoders, f)
         
-        # Print success message with model accuracy
+        # Calculate and return accuracy
+        X_test[numeric_features] = scaler.transform(X_test[numeric_features])
         accuracy = model.score(X_test, y_test)
-        return f"Model and scaler successfully created and saved! Model accuracy: {accuracy:.2%}"
+        return f"Model created successfully! Accuracy: {accuracy:.2%}"
     
     except Exception as e:
         print(f"Error creating model: {e}")
