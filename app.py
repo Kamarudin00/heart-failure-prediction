@@ -15,16 +15,26 @@ st.set_page_config(
 # Load model and scaler
 @st.cache_resource
 def load_model():
-    # Create model if it doesn't exist
-    if not os.path.exists('models/model.pkl'):
-        create_model()
-    
     try:
+        # Check if dataset exists
+        if not os.path.exists('heart.csv'):
+            st.error("Dataset 'heart.csv' not found!")
+            return None, None
+        
+        # Create model if it doesn't exist
+        if not os.path.exists('models/model.pkl'):
+            result = create_model()
+            st.info(result)
+            if "Failed" in result:
+                return None, None
+        
+        # Load model and scaler
         with open('models/model.pkl', 'rb') as f:
             model = pickle.load(f)
         with open('models/scaler.pkl', 'rb') as f:
             scaler = pickle.load(f)
         return model, scaler
+    
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
         return None, None
