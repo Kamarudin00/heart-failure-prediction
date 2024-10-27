@@ -99,10 +99,3 @@ if submitted:
         st.error(f'High risk of heart disease (Probability: {proba[1]:.2%})')
     else:
         st.success(f'Low risk of heart disease (Probability: {proba[0]:.2%})')
-
-# Add information
-st.markdown("""
-### About this predictor
-This tool uses a Random Forest model to predict heart disease risk based on various health indicators.
-Please note that this is not a substitute for professional medical advice.
-""")
