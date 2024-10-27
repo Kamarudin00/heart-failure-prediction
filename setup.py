@@ -16,12 +16,19 @@ def create_model():
         # Load and prepare data
         data = pd.read_csv('heart.csv')
         
-        # Print column names for debugging
+        # Debugging: Print column names and first few rows
         print("Available columns:", data.columns.tolist())
+        print("\nFirst few rows of data:")
+        print(data.head())
         
-        # Assuming the target column is named 'target' in heart.csv
-        X = data.drop('target', axis=1)
-        y = data['target']
+        # Check if 'condition' exists instead of 'target'
+        target_column = 'condition' if 'condition' in data.columns else 'HeartDisease' if 'HeartDisease' in data.columns else 'target'
+        
+        if target_column not in data.columns:
+            raise ValueError(f"Target column '{target_column}' not found in dataset. Available columns: {data.columns.tolist()}")
+        
+        X = data.drop(target_column, axis=1)
+        y = data[target_column]
         
         # Split data
         X_train, X_test, y_train, y_test = train_test_split(
@@ -44,7 +51,9 @@ def create_model():
         with open('models/scaler.pkl', 'wb') as f:
             pickle.dump(scaler, f, protocol=4)
         
-        return "Model and scaler successfully created and saved!"
+        # Print success message with model accuracy
+        accuracy = model.score(X_test, y_test)
+        return f"Model and scaler successfully created and saved! Model accuracy: {accuracy:.2%}"
     
     except Exception as e:
         print(f"Error creating model: {e}")
