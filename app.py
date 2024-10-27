@@ -1,112 +1,151 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+import pickle
 import os
 from pathlib import Path
 
-# Get absolute path
+# Set up paths
 BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / 'models' / 'heart_model.pkl'
+SCALER_PATH = BASE_DIR / 'models' / 'scaler.pkl'
 
-# Set page configuration
+# Configure page
 st.set_page_config(
-    page_title="Heart Failure Prediction",
+    page_title="Heart Disease Predictor",
     page_icon="❤️",
-    layout="centered"
+    layout="wide"
 )
 
-# Function to load model and scaler
+# Function to safely load pickle files
+def safe_load_pickle(file_path):
+    try:
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+    except Exception as e:
+        st.error(f"Error loading {file_path.name}: {str(e)}")
+        return None
+
+# Load model and scaler with proper error handling
 @st.cache_resource
 def load_model_and_scaler():
-    try:
-        model_path = BASE_DIR / 'models' / 'heart_failure_model.pkl'
-        scaler_path = BASE_DIR / 'models' / 'scaler.pkl'
-        
-        # Debug info
-        st.sidebar.write("Current directory:", BASE_DIR)
-        st.sidebar.write("Model path:", model_path)
-        st.sidebar.write("Files in current directory:", os.listdir(BASE_DIR))
-        
-        if os.path.exists(BASE_DIR / 'models'):
-            st.sidebar.write("Files in models directory:", 
-                           os.listdir(BASE_DIR / 'models'))
-        
-        # Check if files exist
-        if not model_path.exists():
-            st.error(f"Model file not found at: {model_path}")
-            return None, None
-        
-        if not scaler_path.exists():
-            st.error(f"Scaler file not found at: {scaler_path}")
-            return None, None
-            
-        # Load model and scaler
-        model = joblib.load(model_path)
-        scaler = joblib.load(scaler_path)
-        
-        return model, scaler
-        
-    except Exception as e:
-        st.error(f"Error loading model and scaler: {str(e)}")
+    # Check if files exist
+    if not MODEL_PATH.exists():
+        st.error(f"Model file not found at: {MODEL_PATH}")
         return None, None
+        
+    if not SCALER_PATH.exists():
+        st.error(f"Scaler file not found at: {SCALER_PATH}")
+        return None, None
+    
+    # Load files
+    model = safe_load_pickle(MODEL_PATH)
+    scaler = safe_load_pickle(SCALER_PATH)
+    
+    if model is None or scaler is None:
+        return None, None
+        
+    return model, scaler
+
+# Add debug information to sidebar
+def show_debug_info():
+    st.sidebar.write("### Debug Information")
+    st.sidebar.write("Current directory:", BASE_DIR)
+    st.sidebar.write("Model path:", MODEL_PATH)
+    st.sidebar.write("Scaler path:", SCALER_PATH)
+    
+    if MODEL_PATH.exists():
+        st.sidebar.write("Model file exists")
+    else:
+        st.sidebar.write("Model file missing!")
+        
+    if SCALER_PATH.exists():
+        st.sidebar.write("Scaler file exists")
+    else:
+        st.sidebar.write("Scaler file missing!")
+
+# Show debug info
+show_debug_info()
 
 # Load model and scaler
 model, scaler = load_model_and_scaler()
 
 # Check if model and scaler loaded successfully
 if model is None or scaler is None:
-    st.error("Failed to load the model or scaler. Please check if the files exist.")
+    st.error("Failed to load model or scaler. Please check the files and try again.")
     st.stop()
 
 # UI elements
-st.title("Heart Failure Prediction")
-st.write("Enter patient information to predict heart failure risk")
+st.title("Heart Disease Prediction")
+st.write("Enter patient information to predict heart disease risk")
 
 # Create input form
 with st.form("prediction_form"):
-    # Input fields
-    age = st.number_input("Age", min_value=0, max_value=120, value=50)
-    sex = st.selectbox("Sex", ["Male", "Female"])
-    cp = st.selectbox("Chest Pain Type", ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"])
-    trestbps = st.number_input("Resting Blood Pressure (mm Hg)", min_value=0, max_value=300, value=120)
-    chol = st.number_input("Cholesterol (mg/dl)", min_value=0, max_value=600, value=200)
-    fbs = st.selectbox("Fasting Blood Sugar > 120 mg/dl", ["No", "Yes"])
-    restecg = st.selectbox("Resting ECG", ["Normal", "ST-T Wave Abnormality", "Left Ventricular Hypertrophy"])
-    thalach = st.number_input("Maximum Heart Rate", min_value=0, max_value=300, value=150)
-    exang = st.selectbox("Exercise Induced Angina", ["No", "Yes"])
-    oldpeak = st.number_input("ST Depression", min_value=0.0, max_value=10.0, value=0.0)
-    slope = st.selectbox("Slope of Peak Exercise ST", ["Upsloping", "Flat", "Downsloping"])
+    col1, col2 = st.columns(2)
     
-    submit_button = st.form_submit_button("Predict")
+    with col1:
+        age = st.number_input("Age", min_value=20, max_value=100, value=50)
+        sex = st.selectbox("Sex", ["Male", "Female"])
+        cp = st.selectbox("Chest Pain Type", 
+                         ["Typical Angina", 
+                          "Atypical Angina",
+                          "Non-anginal Pain",
+                          "Asymptomatic"])
+        trestbps = st.number_input("Resting Blood Pressure (mm Hg)", 
+                                 min_value=90, max_value=200, value=120)
+        chol = st.number_input("Cholesterol (mg/dl)",
+                             min_value=100, max_value=600, value=200)
+        fbs = st.selectbox("Fasting Blood Sugar > 120 mg/dl", ["No", "Yes"])
+        
+    with col2:
+        restecg = st.selectbox("Resting ECG Results",
+                             ["Normal",
+                              "ST-T Wave Abnormality",
+                              "Left Ventricular Hypertrophy"])
+        thalach = st.number_input("Maximum Heart Rate",
+                                min_value=60, max_value=220, value=150)
+        exang = st.selectbox("Exercise Induced Angina", ["No", "Yes"])
+        oldpeak = st.number_input("ST Depression",
+                                min_value=0.0, max_value=6.0, value=0.0)
+        slope = st.selectbox("Slope of Peak Exercise ST",
+                           ["Upsloping", "Flat", "Downsloping"])
+    
+    submit = st.form_submit_button("Predict")
 
-if submit_button:
+if submit:
     try:
         # Prepare input data
-        sex_encoded = 1 if sex == "Male" else 0
-        cp_encoded = ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"].index(cp)
-        fbs_encoded = 1 if fbs == "Yes" else 0
-        restecg_encoded = ["Normal", "ST-T Wave Abnormality", "Left Ventricular Hypertrophy"].index(restecg)
-        exang_encoded = 1 if exang == "Yes" else 0
-        slope_encoded = ["Upsloping", "Flat", "Downsloping"].index(slope)
+        input_data = {
+            'age': age,
+            'sex': 1 if sex == "Male" else 0,
+            'cp': ["Typical Angina", "Atypical Angina", 
+                   "Non-anginal Pain", "Asymptomatic"].index(cp),
+            'trestbps': trestbps,
+            'chol': chol,
+            'fbs': 1 if fbs == "Yes" else 0,
+            'restecg': ["Normal", "ST-T Wave Abnormality",
+                       "Left Ventricular Hypert rophy"].index(restecg),
+            'thalach': thalach,
+            'exang': 1 if exang == "Yes" else 0,
+            'oldpeak': oldpeak,
+            'slope': ["Upsloping", "Flat", "Downsloping"].index(slope)
+        }
         
-        # Create input array
-        input_data = np.array([[
-            age, sex_encoded, cp_encoded, trestbps, chol, fbs_encoded,
-            restecg_encoded, thalach, exang_encoded, oldpeak, slope_encoded
-        ]])
+        # Convert input data to DataFrame
+        df = pd.DataFrame([input_data])
         
         # Scale input data
-        input_scaled = scaler.transform(input_data)
+        scaled_input = scaler.transform(df)
         
         # Make prediction
-        prediction = model.predict(input_scaled)
-        probability = model.predict_proba(input_scaled)
+        prediction = model.predict(scaled_input)
+        probability = model.predict_proba(scaled_input)
         
         # Show results
         if prediction[0] == 1:
-            st.error(f"High risk of heart failure (Probability: {probability[0][1]:.2%})")
+            st.error(f"High risk of heart disease (Probability: {probability[0][1]:.2%})")
         else:
-            st.success(f"Low risk of heart failure (Probability: {probability[0][0]:.2%})")
+            st.success(f"Low risk of heart disease (Probability: {probability[0][0]:.2%})")
             
     except Exception as e:
         st.error(f"Error making prediction: {str(e)}")
@@ -114,6 +153,6 @@ if submit_button:
 # Add explanatory information
 st.markdown("""
 ### About this predictor
-This tool uses machine learning to predict the risk of heart failure based on various health indicators.
+This tool uses machine learning to predict the risk of heart disease based on various health indicators.
 Please note that this is not a substitute for professional medical advice.
 """)
