@@ -12,9 +12,14 @@ def create_model():
         os.makedirs('models')
     
     # Load and prepare data
-    data = pd.read_csv('heart.csv')
-    X = data.drop('target', axis=1)
-    y = data['target']
+    data = pd.read_csv('heart_cleveland_upload.csv')  # Updated dataset name
+    
+    # Check column names
+    print("Available columns:", data.columns.tolist())
+    
+    # Assuming 'condition' is the target column in this dataset
+    X = data.drop('condition', axis=1)  # Update column name based on actual target
+    y = data['condition']
     
     # Split data
     X_train, X_test, y_train, y_test = train_test_split(
@@ -35,10 +40,10 @@ def create_model():
     
     # Save model and scaler
     with open('models/model.pkl', 'wb') as f:
-        pickle.dump(model, f, protocol=3)
+        pickle.dump(model, f, protocol=4)
     
     with open('models/scaler.pkl', 'wb') as f:
-        pickle.dump(scaler, f, protocol=3)
+        pickle.dump(scaler, f, protocol=4)
     
     return "Model and scaler successfully created and saved!"
 
