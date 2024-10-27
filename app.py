@@ -2,20 +2,20 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from pathlib import Path
+import os
 
 # Set page config
 st.set_page_config(page_title="Heart Disease Predictor", page_icon="❤️")
 
-# Define paths - Sesuaikan dengan nama file yang benar
-MODEL_PATH = "models/heart_failure_model.pkl"  # Ubah sesuai nama file
-SCALER_PATH = "models/scaler.pkl"
-
-# Load model and scaler
+# Load model
 @st.cache_resource
 def load_model():
     try:
-        model = joblib.load(MODEL_PATH)
+        model_path = os.path.join('models', 'heart_failure_model.pkl')
+        if not os.path.exists(model_path):
+            st.error(f"Model file not found at: {model_path}")
+            return None
+        model = joblib.load(model_path)
         return model
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
@@ -82,7 +82,7 @@ if submitted:
         # Convert to DataFrame
         input_df = pd.DataFrame([input_data])
         
-        # Make prediction (tanpa scaling karena sudah di-handle dalam model)
+        # Make prediction
         prediction = model.predict(input_df)
         probability = model.predict_proba(input_df)
         
