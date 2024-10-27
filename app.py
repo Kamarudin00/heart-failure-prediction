@@ -1,47 +1,31 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
-import os
+import joblib
 from pathlib import Path
-from init_model import initialize_model
 
 # Set page config
 st.set_page_config(page_title="Heart Disease Predictor", page_icon="❤️")
 
-# Define paths
-BASE_DIR = Path(__file__).resolve().parent
-MODEL_PATH = BASE_DIR / 'models' / 'heart_model.pkl'
-SCALER_PATH = BASE_DIR / 'models' / 'scaler.pkl'
-
-# Initialize model if not exists
-if not MODEL_PATH.exists() or not SCALER_PATH.exists():
-    st.info("Initializing model for first use...")
-    success = initialize_model()
-    if not success:
-        st.error("Failed to initialize model!")
-        st.stop()
-    st.success("Model initialized successfully!")
-    st.experimental_rerun()
+# Define paths - Sesuaikan dengan nama file yang benar
+MODEL_PATH = "models/heart_failure_model.pkl"  # Ubah sesuai nama file
+SCALER_PATH = "models/scaler.pkl"
 
 # Load model and scaler
 @st.cache_resource
-def load_model_and_scaler():
+def load_model():
     try:
-        with open(MODEL_PATH, 'rb') as f:
-            model = pickle.load(f)
-        with open(SCALER_PATH, 'rb') as f:
-            scaler = pickle.load(f)
-        return model, scaler
+        model = joblib.load(MODEL_PATH)
+        return model
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
-        return None, None
+        return None
 
 # Load model
-model, scaler = load_model_and_scaler()
+model = load_model()
 
-if model is None or scaler is None:
-    st.error("Failed to load model or scaler")
+if model is None:
+    st.error("Failed to load model")
     st.stop()
 
 # Create the UI
@@ -98,12 +82,9 @@ if submitted:
         # Convert to DataFrame
         input_df = pd.DataFrame([input_data])
         
-        # Scale input
-        input_scaled = scaler.transform(input_df)
-        
-        # Make prediction
-        prediction = model.predict(input_scaled)
-        probability = model.predict_proba(input_scaled)
+        # Make prediction (tanpa scaling karena sudah di-handle dalam model)
+        prediction = model.predict(input_df)
+        probability = model.predict_proba(input_df)
         
         # Show result
         if prediction[0] == 1:
@@ -116,6 +97,7 @@ if submitted:
 
 # Add information
 st.markdown("""
-### About this predictor This tool uses machine learning to predict the risk of heart disease based on various health indicators.
+### About this predictor
+This tool uses machine learning to predict the risk of heart disease based on various health indicators.
 Please note that this is not a substitute for professional medical advice.
 """)
