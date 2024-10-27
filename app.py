@@ -2,31 +2,41 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
-from pathlib import Path
+import os
+from setup import create_model
 
-# Set page config
-st.set_page_config(page_title="Heart Disease Predictor", page_icon="❤️")
+# Initialize page config
+st.set_page_config(
+    page_title="Heart Disease Predictor",
+    page_icon="❤️",
+    layout="wide"
+)
 
-def load_pickle(file_path: Path):
+# Load model and scaler
+@st.cache_resource
+def load_model():
+    # Create model if it doesn't exist
+    if not os.path.exists('models/model.pkl'):
+        create_model()
+    
     try:
-        with open(file_path, 'rb') as f:
-            return pickle.load(f)
+        with open('models/model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        with open('models/scaler.pkl', 'rb') as f:
+            scaler = pickle.load(f)
+        return model, scaler
     except Exception as e:
-        st.error(f"Error loading {file_path.name}: {str(e)}")
-        return None
+        st.error(f"Error loading model: {str(e)}")
+        return None, None
 
-# Load model dan scaler
-MODEL_PATH = Path('models/model.pkl')
-SCALER_PATH = Path('models/scaler.pkl')
-
-model = load_pickle(MODEL_PATH)
-scaler = load_pickle(SCALER_PATH)
+# Load model
+model, scaler = load_model()
 
 if model is None or scaler is None:
-    st.error("Failed to load model or scaler")
+    st.error("Failed to load model")
     st.stop()
 
-# UI untuk input
+# UI Components
 st.title('Heart Disease Prediction')
 st.write('Enter patient information:')
 
@@ -34,7 +44,7 @@ with st.form("prediction_form"):
     col1, col2 = st.columns(2)
     
     with col1:
-        age = st.number_input('Age', min_value=20, max_value=100, value=50)
+        age = st.number_input('Age', 20, 100, 50)
         sex = st.selectbox('Sex', ['Male', 'Female'])
         cp = st.selectbox('Chest Pain Type', 
                          ['Typical Angina', 'Atypical Angina', 
@@ -52,12 +62,12 @@ with st.form("prediction_form"):
         oldpeak = st.number_input('ST Depression', 0.0, 6.0, 1.0)
         slope = st.selectbox('Slope of Peak Exercise ST', 
                            ['Upsloping', 'Flat', 'Downsloping'])
-        
+    
     submitted = st.form_submit_button("Predict")
 
 if submitted:
     # Prepare input data
-    data = {
+    input_data = {
         'age': age,
         'sex': 1 if sex == 'Male' else 0,
         'cp': ['Typical Angina', 'Atypical Angina', 
@@ -73,8 +83,8 @@ if submitted:
         'slope': ['Upsloping', 'Flat', 'Downsloping'].index(slope)
     }
     
-    # Convert to DataFrame
-    input_df = pd.DataFrame([data])
+    # Create DataFrame
+    input_df = pd.DataFrame([input_data])
     
     # Scale numeric features
     numeric_cols = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
@@ -84,13 +94,13 @@ if submitted:
     prediction = model.predict(input_df)[0]
     proba = model.predict_proba(input_df)[0]
     
-    # Display result
+    # Show results
     if prediction == 1:
         st.error(f'High risk of heart disease (Probability: {proba[1]:.2%})')
     else:
         st.success(f'Low risk of heart disease (Probability: {proba[0]:.2%})')
 
-# Add information about the model
+# Add information
 st.markdown("""
 ### About this predictor
 This tool uses a Random Forest model to predict heart disease risk based on various health indicators.
