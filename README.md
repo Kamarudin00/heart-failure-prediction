@@ -21,5 +21,7 @@ pip install -r requirements.txt
 Penggunaan
 
 Mempersiapkan Data
+
 Menjalankan Model Untuk melatih model
+
 Memprediksi Gagal Jantung Setelah model dilatih
