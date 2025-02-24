@@ -8,7 +8,7 @@ Instalasi
 
 Clone Repository
 
-git clone https://github.com/Kamarudin00/heart-failure-prediction.git
+git clone https://github.com/Sonyalfauzan23/heart-failure-prediction.git
 
 Masuk ke Direktori Proyek
 
